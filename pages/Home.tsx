@@ -3,18 +3,48 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Globe, DollarSign, Zap, Briefcase, Code, Database, PenTool, Layout, CheckCircle, Star, ArrowRight } from 'lucide-react';
 import { JobCard } from '../components/JobCard';
-import { Job } from '../types';
+import { Job, JobArea } from '../types';
 import { MockApi } from '../services/mockApi';
 import { useAuth } from '../context/AuthContext';
 
 export const Home = () => {
   const [featuredJobs, setFeaturedJobs] = useState<Job[]>([]);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    MockApi.getJobs().then(jobs => setFeaturedJobs(jobs.slice(0, 3)));
+    MockApi.getJobs().then(jobs => {
+      // 1. Set Featured (first 3)
+      setFeaturedJobs(jobs.slice(0, 3));
+
+      // 2. Calculate Counts per Category Group
+      const stats: Record<string, number> = {
+        'Development': 0,
+        'Design': 0,
+        'Data & AI': 0,
+        'Product': 0,
+        'Business': 0,
+        'Marketing': 0
+      };
+
+      jobs.forEach(job => {
+        // Grouping logic based on JobArea types
+        if (['Frontend', 'Backend', 'Fullstack', 'Mobile', 'DevOps', 'QA', 'Security', 'Blockchain'].includes(job.area)) {
+          stats['Development'] = (stats['Development'] || 0) + 1;
+        } else if (job.area === 'Design') {
+          stats['Design'] = (stats['Design'] || 0) + 1;
+        } else if (job.area === 'Data_AI') {
+          stats['Data & AI'] = (stats['Data & AI'] || 0) + 1;
+        } else if (job.area === 'Product') {
+          stats['Product'] = (stats['Product'] || 0) + 1;
+        }
+        // Business and Marketing aren't in the mock data types yet, so they remain 0
+      });
+
+      setCategoryCounts(stats);
+    });
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -80,7 +110,12 @@ export const Home = () => {
                     <div className={`p-3 rounded-full ${cat.bg} ${cat.color} group-hover:scale-110 transition-transform`}>
                         <cat.icon className="w-6 h-6" />
                     </div>
-                    <span className="text-white font-medium text-sm">{cat.name}</span>
+                    <div className="text-center">
+                        <span className="text-white font-medium text-sm block">{cat.name}</span>
+                        <span className="text-xs text-onyx-muted font-medium mt-1 inline-block bg-onyx-900 px-2 py-0.5 rounded-md border border-onyx-700">
+                           {categoryCounts[cat.name] || 0} vagas
+                        </span>
+                    </div>
                 </Link>
             ))}
         </div>
